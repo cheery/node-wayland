@@ -12,4 +12,4 @@ Task List:
  *   Fill the task list with more tasks when you know what to do.
 
 
-Donate: 19Cjd98dNM4SRoNP1t1qbYunYCz8TgjQAm (node-wayland)
+Bitcoin address for donations: 19Cjd98dNM4SRoNP1t1qbYunYCz8TgjQAm (node-wayland)
