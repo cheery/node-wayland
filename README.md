@@ -10,3 +10,6 @@ Task List:
  *   Provide the wayland-client frontend file.
  *   Create the scanner and rig it to build the protocol when the package is installed.
  *   Fill the task list with more tasks when you know what to do.
+
+
+Donate: 19Cjd98dNM4SRoNP1t1qbYunYCz8TgjQAm (node-wayland)
