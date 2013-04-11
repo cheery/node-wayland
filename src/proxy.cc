@@ -10,6 +10,7 @@ extern "C" {
     #include <stdlib.h>
 }
 
+#include "array.h"
 #include "interface.h"
 #include "proxy.h"
 
@@ -34,15 +35,24 @@ Handle<Value> Proxy::New(const Arguments& args) {
     Proxy* proxy = new Proxy();
     proxy->proxy = (wl_proxy*)External::Unwrap(args[0]);
     proxy->interface = (const struct wl_interface*)External::Unwrap(args[1]);
-    proxy->object.interface = proxy->interface;
-    proxy->object.implementation = proxy->proxy;
-    proxy->object.id = wl_proxy_get_id(proxy->proxy);
+    proxy->listener = NULL;
+    proxy->paddle = (struct paddle*)malloc(sizeof(struct paddle*));
+    proxy->paddle->object = Persistent<Object>::New(args.This());
     proxy->Wrap(args.This());
+    wl_proxy_set_user_data(proxy->proxy, proxy->paddle);
     return args.This();
 };
 
 void Proxy::Free() {
-    //listener.object.Dispose();
+    if (listener) {
+        listener->value.Dispose();
+        free(listener);
+        listener = NULL;
+    }
+    if (paddle) {
+        paddle->object.Dispose();
+        free(paddle);
+    }
     proxy = NULL;
 }
 
@@ -89,10 +99,77 @@ Handle<Value> Proxy::Create(const Arguments& args) {
 Handle<Value> Proxy::Listen(const Arguments& args) {
     HandleScope scope;
     Proxy* proxy = AsProxy(args.This());
+    if (proxy == NULL) return ThrowException(String::New("proxy is dead"));
+    if (proxy->listener != NULL) return ThrowException(String::New("listener added already"));
+    proxy->listener = (struct listener*)malloc(sizeof(struct listener));
+    proxy->listener->value = Persistent<Value>::New(args[0]);
     wl_proxy_add_dispatched_listener(proxy->proxy, wl_nodejs_proxy_dispatcher,
-        proxy->interface->events,
-        &proxy->self_ref);
+        proxy->listener,
+        NULL);
     return scope.Close(Undefined());
+}
+
+static
+void wl_argument_from_value(union wl_argument* arg, Local<Value> value, int which) {
+    switch (which) {
+        case 'i': arg->i = value->Int32Value(); break;
+        case 'u': arg->u = value->Uint32Value(); break;
+        case 'f': arg->f = value->NumberValue(); break;
+        case 's':
+        {
+            // Copy to memory if things break down.
+            v8::String::Utf8Value string(value);
+            arg->s = *string;
+        } break;
+        case 'o':
+        case 'n':
+        {
+            Proxy* proxy = Proxy::AsProxy(value->ToObject());
+            struct wl_object* object = (struct wl_object*)malloc(sizeof *object);
+            object->interface = proxy->interface;
+            object->implementation = proxy->proxy;
+            object->id = wl_proxy_get_id(proxy->proxy);
+            arg->o = object;
+        } break;
+        case 'a':
+            // Remember to unallocate this.
+            arg->a = (struct wl_array*)malloc(sizeof(struct wl_array));
+            arg->a->alloc = 0;
+            arg->a->data = ArrayBuffer::GetData(value->ToObject(), &arg->a->size);
+            break;
+        case 'h': arg->h = value->IntegerValue(); break;
+    }
+}
+
+static
+void wl_cleanup_argument(union wl_argument* arg, int which) {
+    switch (which) {
+        case 'i': break;
+        case 'u': break;
+        case 'f': break;
+        case 's': break;
+        case 'o':
+        case 'n': free((void*)arg->o); break;
+        case 'a': free((void*)arg->a); break;
+        case 'h': break;
+    }
+}
+
+Local<Value> wl_argument_to_value(union wl_argument* arg, int which) {
+    switch (which) {
+        case 'i': return Integer::New(arg->i);
+        case 'u': return Integer::NewFromUnsigned(arg->u);
+        case 'f': return Number::New(arg->f);
+        case 's': return String::New(arg->s);
+        case 'o':
+        case 'n': {
+            struct paddle* paddle = (struct paddle*)wl_proxy_get_user_data((wl_proxy*)arg->o->implementation);
+            return *paddle->object;
+        }
+        case 'a': return ArrayBuffer::New(arg->a->size, arg->a->data);
+        case 'h': return Integer::New(arg->h);
+    }
+    return Integer::New(0);
 }
 
 Handle<Value> Proxy::Marshal(const Arguments& args) {
@@ -108,87 +185,51 @@ Handle<Value> Proxy::Marshal(const Arguments& args) {
     if (nargs != args.Length() - 1) {
         return ThrowException(String::New("argc doesn't match the signature"));
     }
-    union wl_argument *c_args = (union wl_argument*)calloc(nargs, sizeof *c_args);
+    union wl_argument *argv = (union wl_argument*)calloc(nargs, sizeof *argv);
     int j = 0;
     for (int i = 0; i < nargs; i++) {
-//        int nullable = 0;
-        if (signature[j] == '?') {
-//            nullable = 1;
-            j++;
-        }
-        char which = signature[j++];
-        switch (which) {
-            case 'i':
-                c_args[i].i = args[i+1]->Int32Value();
-                break;
-            case 'u':
-                c_args[i].u = args[i+1]->Uint32Value();
-                break;
-            case 'f':
-                c_args[i].f = args[i+1]->NumberValue();
-                break;
-            case 's': {
-                v8::String::Utf8Value string(args[i+1]);
-                c_args[i].s = *string;
-                } break;
-            case 'o': case 'n': {
-                Proxy* object = AsProxy(args[i+1]->ToObject());
-                c_args[i].o = &(object->object);
-                } break;
-            case 'a':
-                return ThrowException(String::New("support for byte arrays unimplemented"));
-                break;
-            case 'h':
-                c_args[i].h = args[i+1]->IntegerValue();
-                break;
-        }
+        /*int nullable = 0;*/
+        if (signature[j] == '?') { /*nullable = 1;*/ j++; }
+        wl_argument_from_value(argv+i, args[i+1], signature[j++]);
     }
-    wl_proxy_marshal_a(proxy->proxy, opcode, c_args);
-    free(c_args);
+    wl_proxy_marshal_a(proxy->proxy, opcode, argv);
+    j = 0;
+    for (int i = 0; i < nargs; i++) {
+        /*int nullable = 0;*/
+        if (signature[j] == '?') { /*nullable = 1;*/ j++; }
+        wl_cleanup_argument(argv+i, signature[j++]);
+    }
+    free(argv);
     return scope.Close(Undefined());
 }
 
-//    for (i = 0; i < count; ++i) {
-//        sig_tmp = get_next_argument(sig_tmp, &arg);
-//
-//        jobj = (*env)->GetObjectArrayElement(env, jargs, i);
-//        if ((*env)->ExceptionCheck(env))
-//            goto free_args;
-//
-//        switch(arg.type) {
-//        case 'o':
-//            args[i].o = (*object_conversion)(env, jobj);
-//            break;
-//        case 'n':
-//            /* new_id types are actually expected to be passed in as objects */
-//            args[i].o = (*object_conversion)(env, jobj);
-//            break;
-//        case 'a':
-//            args[i].a = malloc(sizeof(struct wl_array));
-//            if (args[i].a == NULL) {
-//                wl_jni_throw_OutOfMemoryError(env, NULL);
-//                goto free_args;
-//            }
-//
-//            args[i].a->alloc = 0;
-//            args[i].a->data = (*env)->GetDirectBufferAddress(env, jobj);
-//            args[i].a->size = (*env)->GetDirectBufferCapacity(env, jobj);
-//            break;
-//        case 'h':
-//            args[i].h = wl_jni_unbox_integer(env, jobj);
-//            break;
-//        }
-//
-//
-//
 int
 Proxy::wl_nodejs_proxy_dispatcher(const void *data, void *target, uint32_t opcode,
         const struct wl_message *message, union wl_argument *args)
 {
+    struct listener* listener = (struct listener*)data;
+//    printf("proxy data %p with target %p and opcode %i\n", data, target, opcode);
 //    SelfRef* ref = (SelfRef*)target;
 //    Proxy* proxy = AsProxy(ref->object);
+    Persistent<Function> callback = Persistent<Function>::Cast(listener->value);
 
-    printf("proxy has responded with %s(%s)\n", message->name, message->signature);
+    unsigned argc = 1;
+
+    for (int i = 0; message->signature[i]; i++) {
+        char which = message->signature[i];
+        if (which != '?') argc++;
+    }
+
+    Local<Value> argv[argc];
+    argv[0] = String::New(message->name);
+    int j = 0;
+    for (unsigned i = 0; i < argc; i++) {
+        /*int nullable = 0;*/
+        if (message->signature[j] == '?') { /*nullable = 1;*/ j++; }
+        argv[i+1] = wl_argument_to_value(args+i, message->signature[j++]);
+    }
+    callback->Call(Context::GetCurrent()->Global(), argc, argv);
+
 
 
 //    const char *signature;

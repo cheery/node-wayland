@@ -1,9 +1,16 @@
+struct paddle {
+    Persistent<Value> object;
+};
+
 class Proxy : public node::ObjectWrap {
-    const struct wl_interface* interface;
+    struct listener {
+        Persistent<Value> value;
+    };
     
     static int
     wl_nodejs_proxy_dispatcher(const void *data, void *target, uint32_t opcode,
         const struct wl_message *message, union wl_argument *args);
+    struct listener* listener;
 public:
     static inline Proxy* AsProxy(Handle<Object> object){
         Proxy* proxy = ObjectWrap::Unwrap<Proxy>(object);
@@ -24,6 +31,7 @@ public:
 
     static Persistent<Function> constructor;
 
-    struct wl_object object;
+    const struct wl_interface* interface;
     struct wl_proxy* proxy;
+    struct paddle* paddle;
 };
