@@ -25,6 +25,7 @@ void Proxy::Init(Handle<Object> target) {
     NODE_SET_PROTOTYPE_METHOD(tpl, "get_class", GetClass);
     NODE_SET_PROTOTYPE_METHOD(tpl, "create", Create);
     NODE_SET_PROTOTYPE_METHOD(tpl, "listen", Listen);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "spy", Spy);
     NODE_SET_PROTOTYPE_METHOD(tpl, "marshal", Marshal);
     constructor = Persistent<Function>::New(tpl->GetFunction());
     target->Set(String::NewSymbol("Proxy"), constructor);
@@ -106,6 +107,15 @@ Handle<Value> Proxy::Listen(const Arguments& args) {
     wl_proxy_add_dispatched_listener(proxy->proxy, wl_nodejs_proxy_dispatcher,
         proxy->listener,
         NULL);
+    return scope.Close(Undefined());
+}
+
+Handle<Value> Proxy::Spy(const Arguments& args) {
+    HandleScope scope;
+    Proxy* proxy = AsProxy(args.This());
+    if (proxy == NULL) return ThrowException(String::New("proxy is dead"));
+    proxy->paddle->object.Dispose();
+    proxy->paddle->object = Persistent<Object>::New(args[0]->ToObject());
     return scope.Close(Undefined());
 }
 

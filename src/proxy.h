@@ -1,5 +1,5 @@
 struct paddle {
-    Persistent<Value> object;
+    Persistent<Object> object;
 };
 
 class Proxy : public node::ObjectWrap {
@@ -27,6 +27,7 @@ public:
     static Handle<Value> GetClass(const Arguments& args);
     static Handle<Value> Create(const Arguments& args);
     static Handle<Value> Listen(const Arguments& args);
+    static Handle<Value> Spy(const Arguments& args);
     static Handle<Value> Marshal(const Arguments& args);
 
     static Persistent<Function> constructor;
