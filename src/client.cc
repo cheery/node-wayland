@@ -75,7 +75,7 @@ static Handle<Value> ConnectToFd(const Arguments& args) {
     return scope.Close(instance);
 }
 
-static Handle<Value> DisplayClose(const Arguments& args) {
+static Handle<Value> DisplayDisconnect(const Arguments& args) {
     HandleScope scope;
     Proxy* display = Proxy::AsProxy(args[0]->ToObject());
     if (display == NULL) return ThrowException(String::New("not connected"));
@@ -115,8 +115,8 @@ static void Init(Handle<Object> target) {
         FunctionTemplate::New(ConnectToFd)->GetFunction());
     target->Set(String::NewSymbol("get_interface_by_name"),
         FunctionTemplate::New(Interface::GetInterfaceByName)->GetFunction());
-    target->Set(String::NewSymbol("display_close"),
-        FunctionTemplate::New(DisplayClose)->GetFunction());
+    target->Set(String::NewSymbol("display_disconnect"),
+        FunctionTemplate::New(DisplayDisconnect)->GetFunction());
     target->Set(String::NewSymbol("display_fileno"),
         FunctionTemplate::New(DisplayFileno)->GetFunction());
     target->Set(String::NewSymbol("display_flush"),

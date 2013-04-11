@@ -17,7 +17,7 @@ void Interface::Init(Handle<Object> target) {
     Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
     tpl->SetClassName(String::NewSymbol("Interface"));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
-    //NODE_SET_PROTOTYPE_METHOD(tpl, "marshal", Marshal);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "get_name", GetName);
     constructor = Persistent<Function>::New(tpl->GetFunction());
     target->Set(String::NewSymbol("Interface"), constructor);
 }
@@ -29,6 +29,11 @@ Handle<Value> Interface::New(const Arguments& args) {
     interface->Wrap(args.This());
     return args.This();
 };
+Handle<Value> Interface::GetName(const Arguments& args) {
+    HandleScope scope;
+    const struct wl_interface* interface = Unwrap(args.This());
+    return scope.Close(String::New(interface->name));
+}
 
 static const struct wl_interface* interfaces[] = {
     &wl_display_interface,
