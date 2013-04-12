@@ -1,28 +1,28 @@
 var wl = require('./build/Release/wayland_client');
-var pr = require('./client-protocol')
+var interfaces = require('./client-protocol').interfaces;
 
-pr.Display.prototype.roundtrip = function() {
+wl_display = interfaces.wl_display
+wl_display.prototype.roundtrip = function() {
     wl.display_roundtrip(this.proxy);
 };
 
-pr.Display.prototype.disconnect = function() {
+wl_display.prototype.disconnect = function() {
     wl.display_disconnect(this.proxy);
 };
 
-pr.Display.prototype.fileno = function() {
+wl_display.prototype.fileno = function() {
     wl.display_fileno(this.proxy);
 };
 
-pr.Display.prototype.flush = function() {
+wl_display.prototype.flush = function() {
     wl.display_flush(this.proxy);
 };
 
 exports.connect = function(name) {
-    return new pr.Display(wl.connect(name));
+    return new wl_display(wl.connect(name));
 }
 
 exports.connect_to_fd = function(fd) {
-    return new pr.Display(wl.connect_to_fd(fd));
+    return new wl_display(wl.connect_to_fd(fd));
 }
-
-exports.get_interface_by_name = wl.get_interface_by_name
+exports.interfaces = interfaces
