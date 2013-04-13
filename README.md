@@ -7,6 +7,7 @@ Task List:
  *   Verify that the Proxy::Marshal doesn't leak memory and works properly in every situation.
  *   Write some examples, see whether the new bindings work properly.
  *   Verify that everything works.
+ *   Add animated checkboard output to the simple-shm.c
  *   Fill the task list with more tasks when you know what to do.
 
 

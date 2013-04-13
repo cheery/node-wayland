@@ -19,11 +19,14 @@ interface_template = u"""function %(name)s(proxy) {
 interfaces[%(name)r] = %(name)s
 
 """
-listener_template = """    listen: function(listeners) {
+default_proxy_template = """    listen: function(listeners) {
         var self = this;
         this.proxy.listen(function(name){
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
+    },
+    destroy: function() {
+        this.proxy.destroy()
     }"""
 request_template = u"""    %(name)s: function(%(args)s) {
         this.proxy.marshal(%(argv)s);
@@ -85,7 +88,7 @@ def generate_interface(interface):
     enums = []
     name = interface.attrib['name']
     if name != 'wl_display':
-        methods.append(listener_template)
+        methods.append(default_proxy_template)
     for node in interface:
         if node.tag == 'description':
             continue

@@ -106,6 +106,14 @@ static Handle<Value> DisplayRoundtrip(const Arguments& args) {
     return scope.Close(Undefined());
 };
 
+static Handle<Value> DisplayDispatch(const Arguments& args) {
+    HandleScope scope;
+    Proxy* display = Proxy::AsProxy(args[0]->ToObject());
+    if (display == NULL) return ThrowException(String::New("not connected"));
+    return scope.Close(Integer::New(wl_display_dispatch((wl_display*)display->proxy)));
+};
+
+
 static void Init(Handle<Object> target) {
     Interface::Init(target);
     Proxy::Init(target);
@@ -123,6 +131,8 @@ static void Init(Handle<Object> target) {
         FunctionTemplate::New(DisplayFlush)->GetFunction());
     target->Set(String::NewSymbol("display_roundtrip"),
         FunctionTemplate::New(DisplayRoundtrip)->GetFunction());
+    target->Set(String::NewSymbol("display_dispatch"),
+        FunctionTemplate::New(DisplayDispatch)->GetFunction());
 
 //    target->Set(String::NewSymbol("wl_display_interface"), External::Wrap(NULL));//const_cast<wl_interface*>(&wl_display_interface)));
 //

@@ -11,11 +11,15 @@ wl_display.prototype.disconnect = function() {
 };
 
 wl_display.prototype.fileno = function() {
-    wl.display_fileno(this.proxy);
+    return wl.display_fileno(this.proxy);
 };
 
 wl_display.prototype.flush = function() {
     wl.display_flush(this.proxy);
+};
+
+wl_display.prototype.dispatch = function() {
+    return wl.display_dispatch(this.proxy);
 };
 
 exports.connect = function(name) {

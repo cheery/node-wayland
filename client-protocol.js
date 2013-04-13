@@ -59,6 +59,9 @@ wl_registry.prototype = {
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
     },
+    destroy: function() {
+        this.proxy.destroy()
+    },
     bind: function(name, spy, version) {
         new_id = this.proxy.create(spy.interface);
         this.proxy.marshal(0, name, spy.interface.get_name(), version, new_id);
@@ -78,6 +81,9 @@ wl_callback.prototype = {
         this.proxy.listen(function(name){
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
+    },
+    destroy: function() {
+        this.proxy.destroy()
     }
 };
 wl_callback.interface = wl.get_interface_by_name('wl_callback');
@@ -93,6 +99,9 @@ wl_compositor.prototype = {
         this.proxy.listen(function(name){
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
+    },
+    destroy: function() {
+        this.proxy.destroy()
     },
     create_surface: function() {
         new_id = this.proxy.create(wl_surface.interface);
@@ -118,6 +127,9 @@ wl_shm_pool.prototype = {
         this.proxy.listen(function(name){
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
+    },
+    destroy: function() {
+        this.proxy.destroy()
     },
     create_buffer: function(offset, width, height, stride, format) {
         new_id = this.proxy.create(wl_buffer.interface);
@@ -145,6 +157,9 @@ wl_shm.prototype = {
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
     },
+    destroy: function() {
+        this.proxy.destroy()
+    },
     create_pool: function(fd, size) {
         new_id = this.proxy.create(wl_shm_pool.interface);
         this.proxy.marshal(0, new_id, fd, size);
@@ -171,6 +186,9 @@ wl_buffer.prototype = {
         });
     },
     destroy: function() {
+        this.proxy.destroy()
+    },
+    destroy: function() {
         this.proxy.marshal(0);
     }
 };
@@ -187,6 +205,9 @@ wl_data_offer.prototype = {
         this.proxy.listen(function(name){
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
+    },
+    destroy: function() {
+        this.proxy.destroy()
     },
     accept: function(serial, mime_type) {
         this.proxy.marshal(0, serial, mime_type);
@@ -212,6 +233,9 @@ wl_data_source.prototype = {
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
     },
+    destroy: function() {
+        this.proxy.destroy()
+    },
     offer: function(mime_type) {
         this.proxy.marshal(0, mime_type);
     },
@@ -233,6 +257,9 @@ wl_data_device.prototype = {
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
     },
+    destroy: function() {
+        this.proxy.destroy()
+    },
     start_drag: function(source, origin, icon, serial) {
         this.proxy.marshal(0, (source === null || source === undefined)?source:source.proxy, (origin === null || origin === undefined)?origin:origin.proxy, (icon === null || icon === undefined)?icon:icon.proxy, serial);
     },
@@ -253,6 +280,9 @@ wl_data_device_manager.prototype = {
         this.proxy.listen(function(name){
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
+    },
+    destroy: function() {
+        this.proxy.destroy()
     },
     create_data_source: function() {
         new_id = this.proxy.create(wl_data_source.interface);
@@ -279,6 +309,9 @@ wl_shell.prototype = {
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
     },
+    destroy: function() {
+        this.proxy.destroy()
+    },
     get_shell_surface: function(surface) {
         new_id = this.proxy.create(wl_shell_surface.interface);
         this.proxy.marshal(0, new_id, (surface === null || surface === undefined)?surface:surface.proxy);
@@ -298,6 +331,9 @@ wl_shell_surface.prototype = {
         this.proxy.listen(function(name){
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
+    },
+    destroy: function() {
+        this.proxy.destroy()
     },
     pong: function(serial) {
         this.proxy.marshal(0, serial);
@@ -359,6 +395,9 @@ wl_surface.prototype = {
         });
     },
     destroy: function() {
+        this.proxy.destroy()
+    },
+    destroy: function() {
         this.proxy.marshal(0);
     },
     attach: function(buffer, x, y) {
@@ -399,6 +438,9 @@ wl_seat.prototype = {
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
     },
+    destroy: function() {
+        this.proxy.destroy()
+    },
     get_pointer: function() {
         new_id = this.proxy.create(wl_pointer.interface);
         this.proxy.marshal(0, new_id);
@@ -432,6 +474,9 @@ wl_pointer.prototype = {
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
     },
+    destroy: function() {
+        this.proxy.destroy()
+    },
     set_cursor: function(serial, surface, hotspot_x, hotspot_y) {
         this.proxy.marshal(0, serial, (surface === null || surface === undefined)?surface:surface.proxy, hotspot_x, hotspot_y);
     },
@@ -454,6 +499,9 @@ wl_keyboard.prototype = {
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
     },
+    destroy: function() {
+        this.proxy.destroy()
+    },
 KEYMAP_FORMAT_XKB_V1: 1,
 KEY_STATE_RELEASED: 0,
 KEY_STATE_PRESSED: 1
@@ -471,6 +519,9 @@ wl_touch.prototype = {
         this.proxy.listen(function(name){
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
+    },
+    destroy: function() {
+        this.proxy.destroy()
     }
 };
 wl_touch.interface = wl.get_interface_by_name('wl_touch');
@@ -486,6 +537,9 @@ wl_output.prototype = {
         this.proxy.listen(function(name){
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
+    },
+    destroy: function() {
+        this.proxy.destroy()
     },
 SUBPIXEL_UNKNOWN: 0,
 SUBPIXEL_NONE: 1,
@@ -517,6 +571,9 @@ wl_region.prototype = {
         this.proxy.listen(function(name){
             if (listeners[name]) listeners[name].apply(self, Array.prototype.slice.call(arguments, 1));
         });
+    },
+    destroy: function() {
+        this.proxy.destroy()
     },
     destroy: function() {
         this.proxy.marshal(0);
