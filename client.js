@@ -24,9 +24,19 @@ wl_display.prototype.dispatch = function() {
 
 exports.connect = function(name) {
     return new wl_display(wl.connect(name));
-}
+};
 
 exports.connect_to_fd = function(fd) {
     return new wl_display(wl.connect_to_fd(fd));
-}
-exports.interfaces = interfaces
+};
+exports.interfaces = interfaces;
+
+exports.create_anonymous_file = function() {
+    return wl.create_anonymous_file();
+};
+
+exports.mmap_fd = function(fd, size) {
+    data = wl.mmap_fd(fd, size);
+    data.free = function() { wl.munmap_fd(this); }
+    return data;
+};

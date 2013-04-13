@@ -36,14 +36,27 @@ window.shell_surface.set_title("simple-shm")
 window.shell_surface.set_toplevel()
 
 info = {}
-info.width  = 250
-info.height = 250
+info.width  = 256
+info.height = 256
 info.format = display.shm.FORMAT_XRGB8888
 info.stride = info.width*4
 info.size   = info.stride*info.height
-info.fd     = fs.openSync('/dev/zero', 'r+')
-# to make this demo show something interesting
-# node.js needs anonymous files and mmap of them into array buffers.
+info.fd     = wl.create_anonymous_file()
+fs.truncate(info.fd, info.size)
+data = wl.mmap_fd(info.fd, info.size)
+
+for i in [0...info.width*info.height]
+    x = i % info.width
+    y = Math.floor(i / info.width)
+    value = 0xA0
+    x_even = Math.floor(x/16) % 2 == 0
+    y_even = Math.floor(y/16) % 2 == 0
+    if x_even ^ y_even
+        value = 0x40
+    data[i*4+3] = value
+    data[i*4+2] = value
+    data[i*4+1] = value
+    data[i*4+0] = value
 
 pool = display.shm.create_pool(info.fd, info.size)
 buffer = pool.create_buffer(0, info.width, info.height, info.stride, info.format)

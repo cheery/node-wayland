@@ -14,7 +14,7 @@ extern "C" {
 static Persistent<Function> arraybuffer_constructor;
 
 namespace ArrayBuffer {
-    Local<Object> New(size_t size, void* data) {
+    void DemandInit() {
         if (arraybuffer_constructor.IsEmpty()) {
             Local<Object> global = Context::GetCurrent()->Global();
             Local<Value> val = global->Get(String::New("ArrayBuffer"));
@@ -22,9 +22,19 @@ namespace ArrayBuffer {
             assert(val->IsFunction() && "not a constructor: ArrayBuffer");
             arraybuffer_constructor = Persistent<Function>::New(val.As<Function>());
         }
+    };
+    Local<Object> New(size_t size, void* data) {
+        DemandInit();
         Local<Value> arg_size = Integer::NewFromUnsigned(size);
         Local<Object> array = arraybuffer_constructor->NewInstance(1, &arg_size);
         if (data != NULL) SetData(array, size, data);
+        return array;
+    }
+    Local<Object> Wrap(size_t size, void* data) {
+        DemandInit();
+        Local<Value> arg_size = Integer::NewFromUnsigned(size);
+        Local<Object> array = arraybuffer_constructor->NewInstance(1, &arg_size);
+        array->SetIndexedPropertiesToExternalArrayData(data, kExternalByteArray, size);
         return array;
     }
 

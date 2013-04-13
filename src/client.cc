@@ -7,8 +7,12 @@ using namespace v8;
 extern "C" {
     #include <wayland-client.h>
     #include <stdio.h>
+    #include <sys/mman.h>
+    #include <stdlib.h>
+    #include <unistd.h>
 }
 
+#include "array.h"
 #include "interface.h"
 #include "proxy.h"
 
@@ -113,6 +117,33 @@ static Handle<Value> DisplayDispatch(const Arguments& args) {
     return scope.Close(Integer::New(wl_display_dispatch((wl_display*)display->proxy)));
 };
 
+static Handle<Value> MemoryMapFile(const Arguments& args) {
+    HandleScope scope;
+    size_t size = args[1]->IntegerValue();
+    void* data = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_SHARED, args[0]->IntegerValue(), 0);
+    return scope.Close(ArrayBuffer::Wrap(size, data));
+};
+
+static Handle<Value> MemoryUnmapFile(const Arguments& args) {
+    HandleScope scope;
+    size_t size;
+    void* data = ArrayBuffer::GetData(args[0]->ToObject(), &size);
+    munmap(data, size);
+    return scope.Close(Undefined());
+};
+
+static
+int create_anon_file() {
+    char name[] = "/tmp/wayland-shared-XXXXXX";
+    int fd = mkostemp(name, O_CLOEXEC);
+    if (fd >= 0) unlink(name);
+    return fd;
+}
+
+static Handle<Value> CreateAnonFile(const Arguments& args) {
+    HandleScope scope;
+    return scope.Close(Integer::New(create_anon_file()));
+};
 
 static void Init(Handle<Object> target) {
     Interface::Init(target);
@@ -133,6 +164,12 @@ static void Init(Handle<Object> target) {
         FunctionTemplate::New(DisplayRoundtrip)->GetFunction());
     target->Set(String::NewSymbol("display_dispatch"),
         FunctionTemplate::New(DisplayDispatch)->GetFunction());
+    target->Set(String::NewSymbol("mmap_fd"),
+        FunctionTemplate::New(MemoryMapFile)->GetFunction());
+    target->Set(String::NewSymbol("munmap_fd"),
+        FunctionTemplate::New(MemoryUnmapFile)->GetFunction());
+    target->Set(String::NewSymbol("create_anonymous_file"),
+        FunctionTemplate::New(CreateAnonFile)->GetFunction());
 
 //    target->Set(String::NewSymbol("wl_display_interface"), External::Wrap(NULL));//const_cast<wl_interface*>(&wl_display_interface)));
 //
