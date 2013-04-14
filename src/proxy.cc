@@ -120,7 +120,7 @@ Handle<Value> Proxy::Spy(const Arguments& args) {
 }
 
 static
-void wl_argument_from_value(union wl_argument* arg, Local<Value> value, int which) {
+int wl_argument_from_value(union wl_argument* arg, Local<Value> value, int which, int nullable) {
     switch (which) {
         case 'i': arg->i = value->Int32Value(); break;
         case 'u': arg->u = value->Uint32Value(); break;
@@ -134,12 +134,17 @@ void wl_argument_from_value(union wl_argument* arg, Local<Value> value, int whic
         case 'o':
         case 'n':
         {
-            Proxy* proxy = Proxy::AsProxy(value->ToObject());
-            struct wl_object* object = (struct wl_object*)malloc(sizeof *object);
-            object->interface = proxy->interface;
-            object->implementation = proxy->proxy;
-            object->id = wl_proxy_get_id(proxy->proxy);
-            arg->o = object;
+            if (value->IsUndefined() || value->IsNull()) {
+                arg->o = NULL;
+                if (!nullable) return 0;
+            } else {
+                Proxy* proxy = Proxy::AsProxy(value->ToObject());
+                struct wl_object* object = (struct wl_object*)malloc(sizeof *object);
+                object->interface = proxy->interface;
+                object->implementation = proxy->proxy;
+                object->id = wl_proxy_get_id(proxy->proxy);
+                arg->o = object;
+            }
         } break;
         case 'a':
             // Remember to unallocate this.
@@ -148,7 +153,10 @@ void wl_argument_from_value(union wl_argument* arg, Local<Value> value, int whic
             arg->a->data = ArrayBuffer::GetData(value->ToObject(), &arg->a->size);
             break;
         case 'h': arg->h = value->IntegerValue(); break;
+        default:
+            return 0;
     }
+    return 1;
 }
 
 static
@@ -197,12 +205,13 @@ Handle<Value> Proxy::Marshal(const Arguments& args) {
     }
     union wl_argument *argv = (union wl_argument*)calloc(nargs, sizeof *argv);
     int j = 0;
+    int arg_ok = 1;
     for (int i = 0; i < nargs; i++) {
-        /*int nullable = 0;*/
-        if (signature[j] == '?') { /*nullable = 1;*/ j++; }
-        wl_argument_from_value(argv+i, args[i+1], signature[j++]);
+        int nullable = 0;
+        if (signature[j] == '?') { nullable = 1; j++; }
+        arg_ok &= wl_argument_from_value(argv+i, args[i+1], signature[j++], nullable);
     }
-    wl_proxy_marshal_a(proxy->proxy, opcode, argv);
+    if (arg_ok) wl_proxy_marshal_a(proxy->proxy, opcode, argv);
     j = 0;
     for (int i = 0; i < nargs; i++) {
         /*int nullable = 0;*/
@@ -210,6 +219,7 @@ Handle<Value> Proxy::Marshal(const Arguments& args) {
         wl_cleanup_argument(argv+i, signature[j++]);
     }
     free(argv);
+    if (!arg_ok) return ThrowException(String::New("bad argument list"));
     return scope.Close(Undefined());
 }
 

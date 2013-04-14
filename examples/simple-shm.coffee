@@ -34,6 +34,8 @@ window.shell_surface.listen {
 }
 window.shell_surface.set_title("simple-shm")
 window.shell_surface.set_toplevel()
+#if you uncomment this line, remove the set_toplevel -line.
+#window.shell_surface.set_fullscreen(window.shell_surface.FULLSCREEN_METHOD_SCALE, 30, null)
 
 info = {}
 info.width  = 256
