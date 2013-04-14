@@ -6,6 +6,7 @@ using namespace v8;
 
 extern "C" {
     #include <wayland-client.h>
+    #include <wayland-util.h>
     #include <stdio.h>
     #include <stdlib.h>
 }
@@ -124,7 +125,7 @@ int wl_argument_from_value(union wl_argument* arg, Local<Value> value, int which
     switch (which) {
         case 'i': arg->i = value->Int32Value(); break;
         case 'u': arg->u = value->Uint32Value(); break;
-        case 'f': arg->f = value->NumberValue(); break;
+        case 'f': arg->f = wl_fixed_from_double(value->NumberValue()); break;
         case 's':
         {
             // Copy to memory if things break down.
@@ -177,17 +178,23 @@ Local<Value> wl_argument_to_value(union wl_argument* arg, int which) {
     switch (which) {
         case 'i': return Integer::New(arg->i);
         case 'u': return Integer::NewFromUnsigned(arg->u);
-        case 'f': return Number::New(arg->f);
+        case 'f': return Number::New(wl_fixed_to_double(arg->f));
         case 's': return String::New(arg->s);
         case 'o':
         case 'n': {
-            struct paddle* paddle = (struct paddle*)wl_proxy_get_user_data((wl_proxy*)arg->o->implementation);
-            return *paddle->object;
+            if (arg->o == NULL) {
+                return *Null();
+            } else if (arg->o->implementation == NULL) { // fix this, there most likely is a proxy that can be located for this entry.
+                return Integer::New(arg->o->id);
+            } else {
+                struct paddle* paddle = (struct paddle*)wl_proxy_get_user_data((wl_proxy*)arg->o->implementation);
+                return *paddle->object;
+            }
         }
         case 'a': return ArrayBuffer::New(arg->a->size, arg->a->data);
         case 'h': return Integer::New(arg->h);
     }
-    return Integer::New(0);
+    return *Undefined();
 }
 
 Handle<Value> Proxy::Marshal(const Arguments& args) {
