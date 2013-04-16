@@ -40,3 +40,7 @@ exports.mmap_fd = function(fd, size) {
     data.free = function() { wl.munmap_fd(this); }
     return data;
 };
+
+exports.munmap_fd = function(data) {
+    wl.munmap_fd(data);
+};
