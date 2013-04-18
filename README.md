@@ -12,7 +12,6 @@ Task List:
  *   Write example for drag&drop and copy&paste.
  *   Find some code that crashes, then put the system go into known state instead of crashing.
  *   Provide wayland-egl bindings and tune cheery's webgl-bindings to work with wayland.
- *   For some reason the fixed -marshal is broken. Find out what's going on.
  *   Write a small toolkit that provides every feature provided by wayland.
  *   Find nice lib which loads PNG or JPG files in RGBA -format.
  *   Write a tiny blitting engine.
