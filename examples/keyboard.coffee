@@ -11,7 +11,7 @@ compositor = globals.bind_one('wl_compositor', 1)
 shell = globals.bind_one('wl_shell', 1)
 shm = globals.bind_one('wl_shm', 1)
 seat = globals.bind_one('wl_seat', 1)
-#data_device_manager = globals.bind_one('wl_data_device_manager', 1)
+data_device_manager = globals.bind_one('wl_data_device_manager', 1)
 
 shm.formats = 0
 shm.listen format: (format) -> @formats |= 1 << format
@@ -100,26 +100,29 @@ pointer = seat.get_pointer()
 pointer.inside = null
 pointer.listen {
     motion: (time, x, y) ->
-        console.log "motion #{time} (#{x},#{y})"
+#        console.log "motion #{time} (#{x},#{y})"
     button: (serial, time, button, state) ->
         console.log "button #{serial} #{time} #{button} #{state}"
-        if state == 1 and this.inside == window.surface.proxy.get_id()
+        console.log 'this inside', this.inside
+        console.log 'window surface', window.surface
+        if state == 1 and this.inside == window.surface
             window.shellface.move(seat, serial)
     axis: (time, axis, value) ->
-        console.log "button #{time} #{axis} #{value}"
+#        console.log "button #{time} #{axis} #{value}"
     enter: (serial, which, x, y) ->
         console.log "enter #{serial} #{which} (#{x},#{y})"
-        this.set_cursor(serial, cursor.surface, 0.2, 0.2)
+        this.set_cursor(serial, cursor.surface, 32, 32)
         update_cursor()
         this.inside = which
     leave: (serial, which) ->
-        console.log "leave #{serial} #{which}"
-        this.set_cursor(serial, null, 0, 0)
+#        console.log "leave #{serial} #{which}"
         this.inside = null
 }
 
 # create_data_source
-# data_device = data_device_manager.get_data_device(seat)
+data_device = data_device_manager.get_data_device(seat)
+data_device.proxy.listen (args...) ->
+    console.log args
 
 ret = 0
 while ret != -1

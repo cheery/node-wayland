@@ -9,6 +9,9 @@ extern "C" {
     #include <wayland-util.h>
     #include <stdio.h>
     #include <stdlib.h>
+
+    // for the stub
+    #include <assert.h>
 }
 
 #include "array.h"
@@ -89,6 +92,7 @@ Handle<Value> Proxy::Create(const Arguments& args) {
     if (proxy == NULL) return ThrowException(String::New("proxy is dead"));
     const struct wl_interface* interface = Interface::Unwrap(args[0]->ToObject());
     wl_proxy* child_proxy = wl_proxy_create(proxy->proxy, interface);
+
     const unsigned argc = 2;
     Handle<Value> argv[argc] = {
         External::Wrap(child_proxy),
@@ -105,9 +109,7 @@ Handle<Value> Proxy::Listen(const Arguments& args) {
     if (proxy->listener != NULL) return ThrowException(String::New("listener added already"));
     proxy->listener = (struct listener*)malloc(sizeof(struct listener));
     proxy->listener->value = Persistent<Value>::New(args[0]);
-    wl_proxy_add_dispatched_listener(proxy->proxy, wl_nodejs_proxy_dispatcher,
-        proxy->listener,
-        NULL);
+    wl_proxy_add_dispatcher(proxy->proxy, wl_nodejs_proxy_dispatcher, proxy->listener, proxy->paddle);
     return scope.Close(Undefined());
 }
 
@@ -140,11 +142,7 @@ int wl_argument_from_value(union wl_argument* arg, Local<Value> value, int which
                 if (!nullable) return 0;
             } else {
                 Proxy* proxy = Proxy::AsProxy(value->ToObject());
-                struct wl_object* object = (struct wl_object*)malloc(sizeof *object);
-                object->interface = proxy->interface;
-                object->implementation = proxy->proxy;
-                object->id = wl_proxy_get_id(proxy->proxy);
-                arg->o = object;
+                arg->o = (wl_object*)proxy->proxy;
             }
         } break;
         case 'a':
@@ -168,7 +166,7 @@ void wl_cleanup_argument(union wl_argument* arg, int which) {
         case 'f': break;
         case 's': break;
         case 'o':
-        case 'n': free((void*)arg->o); break;
+        case 'n': break;
         case 'a': free((void*)arg->a); break;
         case 'h': break;
     }
@@ -184,15 +182,16 @@ Local<Value> wl_argument_to_value(union wl_argument* arg, int which) {
         case 'n': {
             if (arg->o == NULL) {
                 return *Null();
-            } else if (arg->o->implementation == NULL) { // fix this, there most likely is a proxy that can be located for this entry.
-                return Integer::New(arg->o->id);
             } else {
-                struct paddle* paddle = (struct paddle*)wl_proxy_get_user_data((wl_proxy*)arg->o->implementation);
+                struct paddle* paddle = (struct paddle*)wl_proxy_get_user_data((wl_proxy*)arg->o);
                 return *paddle->object;
             }
         }
         case 'a': return ArrayBuffer::New(arg->a->size, arg->a->data);
         case 'h': return Integer::New(arg->h);
+        default:
+              printf("unknown argument signature=%c\n", which);
+              assert(false);
     }
     return *Undefined();
 }
@@ -218,7 +217,7 @@ Handle<Value> Proxy::Marshal(const Arguments& args) {
         if (signature[j] == '?') { nullable = 1; j++; }
         arg_ok &= wl_argument_from_value(argv+i, args[i+1], signature[j++], nullable);
     }
-    if (arg_ok) wl_proxy_marshal_a(proxy->proxy, opcode, argv);
+    if (arg_ok) wl_proxy_marshal_array(proxy->proxy, opcode, argv);
     j = 0;
     for (int i = 0; i < nargs; i++) {
         /*int nullable = 0;*/
@@ -229,6 +228,8 @@ Handle<Value> Proxy::Marshal(const Arguments& args) {
     if (!arg_ok) return ThrowException(String::New("bad argument list"));
     return scope.Close(Undefined());
 }
+
+inline int isnum(char ch) { return ('0' <= ch && ch <= '9'); }
 
 int
 Proxy::wl_nodejs_proxy_dispatcher(const void *data, void *target, uint32_t opcode,
@@ -242,17 +243,18 @@ Proxy::wl_nodejs_proxy_dispatcher(const void *data, void *target, uint32_t opcod
 
     unsigned argc = 1;
 
-    for (int i = 0; message->signature[i]; i++) {
+    for (int i = 0; message->signature[i] > 0; i++) {
         char which = message->signature[i];
-        if (which != '?') argc++;
+        if (which != '?' && !isnum(which)) argc++;
     }
 
     Local<Value> argv[argc];
     argv[0] = String::New(message->name);
     int j = 0;
-    for (unsigned i = 0; i < argc; i++) {
+    for (unsigned i = 0; i < argc-1; i++) {
         /*int nullable = 0;*/
         if (message->signature[j] == '?') { /*nullable = 1;*/ j++; }
+        if (isnum(message->signature[j])) { /*version;*/      j++; }
         argv[i+1] = wl_argument_to_value(args+i, message->signature[j++]);
     }
     callback->Call(Context::GetCurrent()->Global(), argc, argv);

@@ -9,7 +9,10 @@
                 "src/client.cc",
             ],
             "libraries": [
-                "-lwayland-client",
+                "<!@(pkg-config wayland-client --libs)",
+            ],
+            "cflags": [
+                "<!@(pkg-config wayland-client --cflags)",
             ],
         }
     ]

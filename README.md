@@ -1,11 +1,12 @@
 These are work-in-progress node.js bindings. I'll supply examples and screenshots when it can be used.
 
-Current version builds on: https://github.com/jekstrand/wayland/tree/dispatchers-internal
+It should work with wayland 1.4.0 and newer.
 
 Task List:
 
  *   Verify that the Proxy::Marshal doesn't leak memory and works properly in every situation.
- *   Write some examples, see whether the new bindings work properly.
+ *   Verify that interface signature handling code is correct.
+ *   Write some more examples, see whether the new bindings work properly.
  *   Verify that everything works.
  *   Find a good method for listener to provide the correct proxy.
  *   Provide interface parser, for users to access weston interfaces from their apps.

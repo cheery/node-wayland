@@ -7,6 +7,7 @@ using namespace v8;
 extern "C" {
     #include <wayland-client.h>
     #include <stdio.h>
+    #include <string.h>
 }
 
 #include "array.h"
