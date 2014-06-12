@@ -21,7 +21,7 @@ exports.create_buffer = (shm, width, height) ->
     stride = width*4
     size   = stride*height
     fd     = wl.create_anonymous_file()
-    fs.truncate(fd, size)
+    fs.truncateSync(fd, size)
     data = wl.mmap_fd(fd, size)
     pool = shm.create_pool(fd, size)
     buffer = pool.create_buffer(0, width, height, stride, format)

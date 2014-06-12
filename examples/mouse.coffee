@@ -51,7 +51,7 @@ info.format = display.shm.FORMAT_XRGB8888
 info.stride = info.width*4
 info.size   = info.stride*info.height
 info.fd     = wl.create_anonymous_file()
-fs.truncate(info.fd, info.size)
+fs.truncateSync(info.fd, info.size)
 data = wl.mmap_fd(info.fd, info.size)
 
 for i in [0...info.width*info.height]
